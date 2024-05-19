@@ -37,6 +37,29 @@ body {
   padding: 2rem;
 }
 
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield; /* Firefox */
+}
+
+.btn {
+  display: inline-block;
+  font-size: 1.6rem;
+  font-family: inherit;
+  font-weight: 500;
+  border: none;
+  padding: 1.25rem 4.5rem;
+  border-radius: 10rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+/* /////////////////////////////////////// */
+
 nav {
   display: flex;
   justify-content: space-between;
@@ -51,6 +74,7 @@ nav {
 
 .logo {
   height: 5.25rem;
+  /* transition: translate 4s ease-out; */
 }
 
 .login {
@@ -95,6 +119,19 @@ nav {
 .btn--sort:focus {
   outline: none;
   color: #777;
+}
+
+/* Logged in */
+
+.logged__in {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+.logged__in .logo {
+  grid-row: 1/2;
+  margin-bottom: 3rem;
 }
 
 /* MAIN */
@@ -491,4 +528,29 @@ h2 {
   height: 1.8rem;
   fill: #fff;
   margin-left: 2rem;
+}
+
+/* close Account */
+.close-account-btn-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 3rem;
+}
+
+.btn-cancel {
+  background-color: #fff;
+}
+
+.btn-cancel:hover {
+  background-color: #ffffffc9;
+}
+.btn-close-acc {
+  color: #fff;
+  background-color: var(--color-tertiary);
+  margin-left: 2rem;
+}
+
+.btn-close-acc:hover {
+  background-color: var(--color-tertiary-darker);
 }
