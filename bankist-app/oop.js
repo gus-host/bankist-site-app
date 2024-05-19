@@ -13,6 +13,7 @@ const labelTimer = document.querySelector('.timer');
 const containerApp = document.querySelector('.app');
 const containerMovements = document.querySelector('.movements');
 
+const login = document.querySelector('.login');
 const btnLogin = document.querySelector('.login__btn');
 const btnTransfer = document.querySelector('.form__btn--transfer');
 const btnLoan = document.querySelector('.form__btn--loan');
@@ -36,7 +37,13 @@ const nav = document.querySelector('nav');
 const newAccAlert = document.querySelector('.alert__new__acc');
 const alertClose = document.querySelector('.icon-cross');
 
-let currentAccount, timer, newRegisteredAcc, convertedAmount, convertedDetails;
+let currentAccount,
+  timer,
+  newRegisteredAcc,
+  convertedAmount,
+  convertedDetails,
+  loggedIn = false,
+  permitNumbers = false;
 /////////////////////////////////////////////////
 /////////////////////////////////////////////////
 // OBJECT ORIENTED PROGRAMMING REMAKE
@@ -183,10 +190,6 @@ class Account {
     );
   }
 
-  /* 
- 
-*/
-
   updateUI() {
     // Display movements
     this.displayMovements();
@@ -293,27 +296,35 @@ createUsername();
 
 // New Feature
 const checkDoubleUsername = function () {
+  let usernameDoublenum = 0;
   // if (newRegisteredAcc.username
   accounts.map((acc, i) => {
     if (acc !== accounts[accounts.length - 1]) {
       newRegisteredAcc.username === acc.username
         ? (accounts[accounts.length - 1].username = `${
             accounts[accounts.length - 1].username
-          }${i}`)
+          }${usernameDoublenum}`)
         : (accounts[accounts.length - 1].username =
             accounts[accounts.length - 1].username);
     }
   });
+
+  usernameDoublenum++;
 };
 checkDoubleUsername();
 
-const hideUI = function () {
-  // Clear input fields
+const initInputs = function () {
   inputLoginUsername.value = inputLoginPin.value = '';
   inputLoginPin.blur();
   inputTransferAmount.value = inputTransferTo.value = '';
   inputLoanAmount.value = '';
   inputCloseUsername.value = inputClosePin.value = '';
+};
+
+const hideUI = function () {
+  // Clear input fields
+  initInputs();
+  labelWelcome.textContent = `Log in to get started`;
   containerApp.style.opacity = 0;
 };
 
@@ -365,6 +376,7 @@ const startLogOutTimer = function () {
       labelWelcome.textContent = 'Log in to get started';
       containerApp.style.opacity = 0;
       containerApp.style.opacity = 0;
+      loggedIn = false;
     }
 
     // Decrease 1s
@@ -384,7 +396,9 @@ const switchAlert = function () {
   if (!newAccAlert.classList.contains('hidden')) {
     const alertHeight = newAccAlert.getBoundingClientRect().height;
     nav.style.marginTop = `${alertHeight}px`;
-  } else nav.style.marginTop = '0px';
+  } else {
+    nav.style.marginTop = '0px';
+  }
 };
 
 const alertNewAcc = function (username, pin) {
@@ -401,6 +415,42 @@ const alertNewAcc = function (username, pin) {
   switchAlert();
 };
 alertNewAcc(newRegisteredAcc.username, newRegisteredAcc.getPin());
+
+const alphabetsOnly = function (event) {
+  // Get the ASCII code of the pressed key
+  const keyCode = event.keyCode;
+
+  accounts.forEach(acc => {
+    if (
+      /\d/.test(acc.username) === true &&
+      keyCode >= 48 &&
+      keyCode <= 57 &&
+      this.value ===
+        acc.username
+          .split('')
+          .filter(letter => isNaN(letter))
+          .join('')
+    ) {
+      permitNumbers = true;
+    }
+    if (
+      this.value === acc.username ||
+      this.value.length - 1 === acc.username.length - 1
+    )
+      permitNumbers = false;
+  });
+
+  // Allow alphabetical characters: A-Z and a-z
+  if ((keyCode >= 65 && keyCode <= 90) || (keyCode >= 97 && keyCode <= 122)) {
+    return true;
+  } else if (permitNumbers === true) {
+    return true;
+  } else {
+    // Prevent the default action of the key press
+    event.preventDefault();
+    return false;
+  }
+};
 
 ///////////////////////////////////////
 // Modal window
@@ -422,6 +472,8 @@ const modalPopup = function (e, html) {
     'afterbegin',
     `<button class="btn--close-modal">&times;</button>`
   );
+  const btnCloseModal = document.querySelector('.btn--close-modal');
+  btnCloseModal.addEventListener('click', closeModal);
   modal.insertAdjacentHTML('beforeend', html);
   openModal(e);
 };
@@ -436,6 +488,41 @@ modal.insertAdjacentHTML(
     newRegisteredAcc.username
   }</em> and <em>${newRegisteredAcc.getPin()}</em></p>`
 );
+
+// //////////////////////////
+
+const getModalHeadingBox = function (iconNum, headingText, style) {
+  return `<div class="modal__heading__box">
+  <div class="modal__heading__icon modal__heading__icon__${iconNum}">
+    <svg class="icon icon-${style}">
+      <use xlink:href="../img/icons.svg#icon-${style}"></use>
+    </svg>
+  </div>
+  <h3 class="modal__heading">${headingText}!</h3>
+</div>`;
+};
+// New Feature
+// 7. use show modal component to show failed login
+//  failed login popup
+const getFailedLoginorAccCloseHTML = function (iconNum, action) {
+  const wrongInput = `Could not ${action}! Please check that the username and/or pin provided are accurate`;
+
+  let message;
+  const getMessage = function (input1, input2) {
+    if (input1 === '' && input2 === '')
+      message = `No username or pin inputed! Please input your username and pin!`;
+    else message = wrongInput;
+  };
+
+  if (loggedIn === false) {
+    getMessage(inputLoginUsername.value, inputLoginPin.value);
+  } else {
+    getMessage(inputCloseUsername.value, inputClosePin.value);
+  }
+
+  return `${getModalHeadingBox(iconNum, 'failed', 'cross')}
+      <p class="modal__text">${message}</p>`;
+};
 
 ///////////////////////////////////////
 // EVENT HANDLERS
@@ -483,7 +570,7 @@ btnLogin.addEventListener('click', function (e) {
 
     // getting locale
     const locale = navigator.language;
-    console.log(locale); // 'en-US'
+    // console.log(locale); // 'en-US'
 
     labelDate.textContent = new Intl.DateTimeFormat(
       currentAccount.locale,
@@ -493,27 +580,20 @@ btnLogin.addEventListener('click', function (e) {
     // Clear input fields
     inputLoginUsername.value = inputLoginPin.value = '';
     inputLoginPin.blur();
+    initInputs();
 
     if (timer) clearInterval(timer);
     timer = startLogOutTimer();
 
     // Update UI
     currentAccount.updateUI();
+
+    // login.style.display = 'none';
+    // nav.classList.add('logged__in');
+
+    loggedIn = true;
   } else {
-    // New feature
-    //  failed login popup
-    const getFailedLoginHTML = function (iconNum) {
-      return `<div class="modal__heading__box">
-      <div class="modal__heading__icon modal__heading__icon__${iconNum}">
-        <svg class="icon icon-cross">
-          <use xlink:href="../img/icons.svg#icon-cross"></use>
-        </svg>
-      </div>
-      <h3 class="modal__heading">Failed!</h3>
-    </div>
-    <p class="modal__text">Could not Login! Please check that the username and password provided are accurate</p>`;
-    };
-    modalPopup(e, getFailedLoginHTML(2));
+    modalPopup(e, getFailedLoginorAccCloseHTML(2, `login`));
   }
 });
 
@@ -535,14 +615,7 @@ btnTransfer.addEventListener('click', function (e) {
   // Doing successful and failed transfer popup
 
   const getSuccessTranfHTML = function (iconNum) {
-    return `<div class="modal__heading__box">
-    <div class="modal__heading__icon modal__heading__icon__${iconNum}">
-      <svg class="icon icon-checkmark">
-        <use xlink:href="../img/icons.svg#icon-checkmark"></use>
-      </svg>
-    </div>
-    <h3 class="modal__heading">Success!</h3>
-  </div>
+    return `${getModalHeadingBox(iconNum, 'Success', 'checkmark')}
   <p class="modal__text">Your transfer of <em>${amount}${
       currentAccount.currency
     }${convertedDetails ? convertedDetails : ''}</em> has been sent to <em>${
@@ -551,14 +624,7 @@ btnTransfer.addEventListener('click', function (e) {
   };
 
   const getFailedTranfHTML = function (iconNum) {
-    return `<div class="modal__heading__box">
-    <div class="modal__heading__icon modal__heading__icon__${iconNum}">
-      <svg class="icon icon-cross">
-        <use xlink:href="../img/icons.svg#icon-cross"></use>
-      </svg>
-    </div>
-    <h3 class="modal__heading">Failed!</h3>
-  </div>
+    return `${getModalHeadingBox(iconNum, 'Failed', 'cross')}
   <p class="modal__text">Your transfer ${
     inputTransferAmount.value !== '' ? `of <em>${amount}</em>` : ''
   }<em>${
@@ -575,6 +641,11 @@ btnTransfer.addEventListener('click', function (e) {
       <li class="transf__failed__item">you are not sending to yourself(using your own username)</li>
     </ul>
     `;
+  };
+
+  const getFailedConvertCurHTML = function (iconNum) {
+    return `${getModalHeadingBox(iconNum, 'Failed', 'cross')}
+  <p class="modal__text">Could not get conversion rates! Please check that you have a stable internet connection and try again. </p>`;
   };
 
   if (
@@ -616,7 +687,13 @@ btnTransfer.addEventListener('click', function (e) {
 
           modalPopup(e, getSuccessTranfHTML(1));
           inputTransferAmount.value = inputTransferTo.value = '';
+
+          // Doing the transfer
+          currentAccount.getMovements().push(-amount);
+          // Update UI
+          currentAccount.updateUI();
         } else {
+          modalPopup(e, getFailedConvertCurHTML(2));
           console.log('Failed to fetch conversion rate.');
         }
       });
@@ -626,10 +703,10 @@ btnTransfer.addEventListener('click', function (e) {
       inputTransferAmount.value = inputTransferTo.value = '';
 
       receiverAcc.getMovements().push(amount);
-    }
 
-    // Doing the transfer
-    currentAccount.getMovements().push(-amount);
+      // Doing the transfer
+      currentAccount.getMovements().push(-amount);
+    }
 
     // Add transfer date
     currentAccount.movementsDates.push(new Date().toISOString());
@@ -653,11 +730,23 @@ btnLoan.addEventListener('click', function (e) {
 
   const amount = Math.floor(inputLoanAmount.value);
 
+  // New Feature
+  // 5. use show modal component for sucessful and failxed loans
   if (
     amount > 0 &&
     currentAccount.getMovements().some(mov => mov >= amount * 0.1)
   ) {
     setTimeout(function () {
+      // display modal - successful loan
+      const getSuccessLoanHTML = function (iconNum) {
+        return `${getModalHeadingBox(iconNum, 'Success', 'checkmark')}
+      <p class="modal__text">Your Loan of <em>${amount}${
+          currentAccount.currency
+        }</em> was successful!</p>`;
+      };
+
+      modalPopup(e, getSuccessLoanHTML(1));
+
       // Add movement
       currentAccount.getMovements().push(amount);
 
@@ -667,6 +756,22 @@ btnLoan.addEventListener('click', function (e) {
       // Update UI
       currentAccount.updateUI();
     }, 2500); // wait 2.5 seconds before updating UI
+  } else {
+    const getFailedLoanHTML = function (iconNum) {
+      return `${getModalHeadingBox(iconNum, 'Failed', 'cross')}
+    <p class="modal__text">Your loan ${
+      inputLoanAmount.value !== '' ? `of <em>${amount}</em>` : ''
+    }<em>${
+        inputLoanAmount.value !== '' ? currentAccount.currency : ''
+      }</em> was declined. To troubleshoot please check that:
+    <ul class="tranf__failed__list">
+      <li class="transf__failed__item">the amount is valid(i.e the amount is greater than zero) 
+      </li>
+      <li class="transf__failed__item"> you have made a transaction from your transaction history, to which 10% of the amount deposited or withdrawn is equal or greater than the current loan amount</p>
+      </li>
+    </ul>`;
+    };
+    modalPopup(e, getFailedLoanHTML(2));
   }
   inputLoanAmount.value = '';
 
@@ -678,25 +783,55 @@ btnLoan.addEventListener('click', function (e) {
 btnClose.addEventListener('click', function (e) {
   e.preventDefault();
 
-  console.log(inputClosePin.value === currentAccount.getPin());
-
   if (
     inputCloseUsername.value === currentAccount.username &&
-    (typeof inputClosePin.value === 'string'
-      ? inputClosePin.value
-      : +inputClosePin.value) === currentAccount.getPin()
+    currentAccount?.getPin() ===
+      (typeof currentAccount?.getPin() === 'number'
+        ? +inputClosePin.value
+        : inputClosePin.value)
   ) {
-    const index = accounts.findIndex(
-      acc => acc.username === currentAccount.username
-    );
-    console.log(index);
-    // .indexOf(23)
+    // New Feature
+    // 5. use show modal component for confirmation of close of account
+    const confirmCloseAccHTML = `<h3 class="modal__heading">Confirm close of account</h3>
+    <p class='modal__text'>Are you sure you want to close this account?</p>
+    <div class="close-account-btn-box">
+    <button class="btn btn-cancel">Cancel</button>
+    <button class="btn btn-close-acc">Yes</button>
+    </div>
+    `;
+    modalPopup(e, confirmCloseAccHTML);
 
-    // Delete account
-    accounts.splice(index, 1);
+    const btnCancel = document.querySelector('.btn-cancel');
+    const btnCloseAcc = document.querySelector('.btn-close-acc');
 
-    // Hide UI
-    hideUI();
+    btnCloseAcc.addEventListener('click', function () {
+      const index = accounts.findIndex(
+        acc => acc.username === currentAccount.username
+      );
+      // console.log(index);
+      // .indexOf(23)
+
+      // Delete account
+      accounts.splice(index, 1);
+
+      // Hide UI
+      hideUI();
+
+      // close modal
+      closeModal();
+
+      // Switch alert off if new registered account has been closed
+      if (!accounts.some(acc => acc === newRegisteredAcc)) {
+        newAccAlert.classList.add('hidden');
+        switchAlert();
+      }
+
+      loggedIn = false;
+    });
+
+    btnCancel.addEventListener('click', closeModal);
+  } else {
+    modalPopup(e, getFailedLoginorAccCloseHTML(2, `close this account`));
   }
 
   inputCloseUsername.value = inputClosePin.value = '';
@@ -723,11 +858,20 @@ newAccAlert.addEventListener('click', function (e) {
   switchAlert();
 });
 
+inputTransferTo.addEventListener(
+  'keypress',
+  alphabetsOnly.bind(inputTransferTo)
+);
+inputCloseUsername.addEventListener(
+  'keypress',
+  alphabetsOnly.bind(inputCloseUsername)
+);
+inputLoginUsername.addEventListener(
+  'keypress',
+  alphabetsOnly.bind(inputLoginUsername)
+);
 // Extra Features I intend to include
 // 3. use show modal component to open new account
 // 4. logging out
-// 5. use show modal component for confirmation of close of account
-// 5. use show modal component for sucessful and failed loans
-// 7. use show modal component to show failed login
 
 console.log(accounts);
